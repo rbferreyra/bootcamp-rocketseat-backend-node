@@ -1,5 +1,6 @@
 const express = require('express');
-const { uuid } = require('uuidv4');
+const { uuid, isUuid } = require('uuidv4');
+const dateTime = require('node-datetime');
 
 const app = express();
 
@@ -8,6 +9,34 @@ const app = express();
 app.use(express.json());
 
 const projects = [];
+
+function logRequests(request, response, next) {
+    const { method, url } = request;
+
+    const dt = dateTime.create();
+    const dtFormatted = dt.format('Y-m-d H:M:S');
+
+    const logLabel = `[${dtFormatted}] [${method}] ${url}`;
+
+    console.time(logLabel);
+
+    next();
+
+    console.timeEnd(logLabel);
+}
+
+function validateProjectId(request, response, next) {
+    const { id } = request.params;
+
+    if (!isUuid(id)) {
+        return response.json({ error: "Invalid project ID" }, 400);
+    }
+
+    return next();
+}
+
+app.use(logRequests);
+app.use('/projects/:id', validateProjectId);
 
 app.get('/', (request, response) => {
     return response.json({ message: 'Hello world' });
@@ -58,7 +87,7 @@ app.delete('/projects/:id', (request, response) => {
     const projectIndex = projects.findIndex(project => project.id == id);
 
     if (projectIndex < 0) {
-        return response.status(400).json({ error: "Project not found" });
+        return response.json({ error: "Project not found" }, 402);
     }
 
     projects.splice(projectIndex, 1); //remove a index 

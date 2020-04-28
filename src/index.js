@@ -1,10 +1,13 @@
 const express = require('express');
+const { uuid } = require('uuidv4');
 
 const app = express();
 
 //para interpretar o conteúdo das entradas feitas em POST/PUT utilizando o BODY
 //deve atribuir o metodo abaixo, para recuperar essas entradas em JSON
 app.use(express.json());
+
+const projects = [];
 
 app.get('/', (request, response) => {
     return response.json({ message: 'Hello world' });
@@ -13,49 +16,54 @@ app.get('/', (request, response) => {
 app.get('/projects', (request, response) => {
     const { title, owner } = request.query; // query params
 
-    console.log(title);
-    console.log(owner);
+    const results = title ? projects.filter(project => project.title.includes(title)) : projects;
 
-    return response.json([
-        'Projeto 01',
-        'Projeto 02',
-    ]);
+    return response.json(results);
 });
 
 app.post('/projects', (request, response) => {
     const { title, owner } = request.body; // conteúdo das entradas usando o BODY
 
-    console.log(title);
-    console.log(owner);
+    const project = { id: uuid(), title, owner };
 
-    return response.json([
-        'Projeto 01',
-        'Projeto 02',
-        'Projeto 03',
-    ]);
+    projects.push(project);
+
+    return response.json(project);
 });
 
 app.put('/projects/:id', (request, response) => {
     const { id } = request.params; // route params
+    const { title, owner } = request.body;
 
-    console.log(id);
+    const projectIndex = projects.findIndex(project => project.id == id);
 
-    return response.json([
-        'Projeto 04',
-        'Projeto 02',
-        'Projeto 03',
-    ]);
+    if (projectIndex < 0) {
+        return response.json({ error: "Project not found" }, 400);
+    }
+
+    const project = {
+        id,
+        title,
+        owner
+    };
+
+    projects[projectIndex] = project;
+
+    return response.json(project);
 });
 
 app.delete('/projects/:id', (request, response) => {
     const { id } = request.params; // route params
 
-    console.log(id);
+    const projectIndex = projects.findIndex(project => project.id == id);
 
-    return response.json([
-        'Projeto 02',
-        'Projeto 03',
-    ]);
+    if (projectIndex < 0) {
+        return response.status(400).json({ error: "Project not found" });
+    }
+
+    projects.splice(projectIndex, 1); //remove a index 
+
+    return response.status(204).send();
 });
 
 app.listen(3333, () => {
